@@ -13,20 +13,28 @@ PRESETS = {
 def clamp(value):
     return max(0, min(255, value))
 
-def apply_math(hex_str, operator, amount):
+def apply_math(hex_str, operator, channel, amount):
     r = int(hex_str[0:2], 16)
     g = int(hex_str[2:4], 16)
     b = int(hex_str[4:6], 16)
     a = hex_str[6:8]
     
     if operator == '+':
-        r = clamp(r + amount)
-        g = clamp(g + amount)
-        b = clamp(b + amount)
+        if channel == 'r': r = clamp(r + amount)
+        elif channel == 'g': g = clamp(g + amount)
+        elif channel == 'b': b = clamp(b + amount)
+        else:
+            r = clamp(r + amount)
+            g = clamp(g + amount)
+            b = clamp(b + amount)
     elif operator == '-':
-        r = clamp(r - amount)
-        g = clamp(g - amount)
-        b = clamp(b - amount)
+        if channel == 'r': r = clamp(r - amount)
+        elif channel == 'g': g = clamp(g - amount)
+        elif channel == 'b': b = clamp(b - amount)
+        else:
+            r = clamp(r - amount)
+            g = clamp(g - amount)
+            b = clamp(b - amount)
         
     return f"{r:02x}{g:02x}{b:02x}{a}"
 
@@ -41,20 +49,30 @@ def resolve_token(token, index, custom_hex_val=None):
         force_solid = True
         
     operator = None
+    channel = None
     amount = 0
     
     if '+' in base:
         operator = '+'
         parts = base.split('+')
         raw_base = parts[0]
-        amount = int(parts[1])
+        math_part = parts[1]
     elif '-' in base:
         operator = '-'
         parts = base.split('-')
         raw_base = parts[0]
-        amount = int(parts[1])
+        math_part = parts[1]
     else:
         raw_base = base
+        math_part = None
+
+    if math_part:
+        if math_part[0] in ['r', 'g', 'b']:
+            channel = math_part[0]
+            amount = int(math_part[1:])
+        else:
+            channel = None
+            amount = int(math_part)
 
     if raw_base in PRESETS:
         hex_val = PRESETS[raw_base]
@@ -72,7 +90,7 @@ def resolve_token(token, index, custom_hex_val=None):
         sys.exit(1)
         
     if operator:
-        hex_val = apply_math(hex_val, operator, amount)
+        hex_val = apply_math(hex_val, operator, channel, amount)
         
     if force_solid:
         hex_val = hex_val[:6] + "ff"
